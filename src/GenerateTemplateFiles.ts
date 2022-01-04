@@ -1,26 +1,26 @@
 import enquirer from 'enquirer';
-import recursiveCopy from 'recursive-copy';
 import pathExists from 'path-exists';
-import through from 'through2';
+import recursiveCopy from 'recursive-copy';
 import replaceString from 'replace-string';
-import StringUtility from './utilities/StringUtility';
+import through from 'through2';
+import yargs from 'yargs';
 import CaseConverterEnum from './constants/CaseConverterEnum';
 import IConfigItem from './models/IConfigItem';
-import IReplacer from './models/IReplacer';
-import IResults from './models/IResults';
 import IDefaultCaseConverter from './models/IDefaultCaseConverter';
+import IReplacer from './models/IReplacer';
+import IReplacerSlotQuestion from './models/IReplacerSlotQuestion';
+import IResults from './models/IResults';
 import {
+  displayError,
+  displaySuccess,
+  displayWarning,
   throwErrorIfNoConfigItems,
   throwErrorIfNoStringOrDynamicReplacers,
   throwErrorIfOptionNameIsNotFound,
   throwErrorIfStringReplacersDoNotMatch,
   throwErrorIfStringReplacersExistOrNoDynamicReplacers,
-  displayError,
-  displayWarning,
-  displaySuccess,
 } from './utilities/CheckUtility';
-import IReplacerSlotQuestion from './models/IReplacerSlotQuestion';
-import yargs from 'yargs';
+import StringUtility from './utilities/StringUtility';
 
 export default class GenerateTemplateFiles {
   private _isCommandLine: boolean = false;
@@ -363,7 +363,14 @@ export default class GenerateTemplateFiles {
     };
 
     try {
-      await recursiveCopy(entryFolderPath, outputPath, recursiveCopyOptions);
+      let updatedEntryFolderPath = answeredReplacer.reduce(function (path) {
+        let formattedFilePath = path;
+        outputPathReplacers.forEach(function (replacer) {
+          formattedFilePath = replaceString(formattedFilePath, replacer.slot, replacer.slotValue);
+        });
+        return formattedFilePath;
+      }, entryFolderPath);
+      await recursiveCopy(updatedEntryFolderPath, outputPath, recursiveCopyOptions);
 
       displaySuccess(`Files saved to: '${outputPath}'`);
 
